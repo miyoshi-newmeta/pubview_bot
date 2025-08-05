@@ -20,7 +20,7 @@ RANK_ROLES = {
 # ----------------
 
 # --- データベースの初期設定 ---
-def setup_database():
+def setup_database() -> None:
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     con = sqlite3.connect(DB_PATH)
     cur = con.cursor()
@@ -52,7 +52,7 @@ my_region_for_summoner = 'jp1'
 # -----------------------------
 
 # --- ヘルパー関数 ---
-def get_rank_by_puuid(puuid: str):
+def get_rank_by_puuid(puuid: str) -> dict | None:
     max_retries = 3
     for attempt in range(max_retries):
         try:
@@ -94,7 +94,7 @@ def get_rank_by_puuid(puuid: str):
     print(f"Failed to get rank for PUUID {puuid} after {max_retries} retries.")
     return None
 
-def rank_to_value(tier, rank, lp):
+def rank_to_value(tier: str, rank: str, lp: int) -> int:
     tier_values = {"CHALLENGER": 9, "GRANDMASTER": 8, "MASTER": 7, "DIAMOND": 6, "EMERALD": 5, "PLATINUM": 4, "GOLD": 3, "SILVER": 2, "BRONZE": 1, "IRON": 0}
     rank_values = {"I": 4, "II": 3, "III": 2, "IV": 1}
     tier_val = tier_values.get(tier.upper(), 0) * 1000
@@ -102,7 +102,7 @@ def rank_to_value(tier, rank, lp):
     return tier_val + rank_val + lp
 
 # --- ランキング作成ロジックを共通関数化 ---
-async def create_ranking_embed():
+async def create_ranking_embed() -> discord.Embed:
     con = sqlite3.connect(DB_PATH)
     cur = con.cursor()
     # DBからランク情報がNULLでないユーザーのみを取得
@@ -145,7 +145,7 @@ async def create_ranking_embed():
 
 # --- イベント ---
 @bot.event
-async def on_ready():
+async def on_ready() -> None:
     print(f"Bot logged in as {bot.user}")
 
     # ▼▼▼ 起動時にランキングを投稿する処理を追加 ▼▼▼
@@ -160,7 +160,7 @@ async def on_ready():
 
 # --- コマンド ---
 @bot.slash_command(name="register", description="あなたのRiot IDをボットに登録します。")
-async def register(ctx, game_name: str, tag_line: str):
+async def register(ctx: discord.ApplicationContext, game_name: str, tag_line: str) -> None:
     await ctx.defer()
     if tag_line.startswith("#"):
         tag_line = tag_line[1:]
@@ -190,7 +190,7 @@ async def register(ctx, game_name: str, tag_line: str):
         await ctx.respond("登録中に予期せぬエラーが発生しました。")
 
 @bot.slash_command(name="register_by_other", description="指定したユーザーのRiot IDをボットに登録します。（管理者向け）")
-async def register_by_other(ctx, user: discord.Member, game_name: str, tag_line: str):
+async def register_by_other(ctx: discord.ApplicationContext, user: discord.Member, game_name: str, tag_line: str) -> None:
     await ctx.defer(ephemeral=True) # コマンド結果は実行者のみに見える
     if tag_line.startswith("#"):
         tag_line = tag_line[1:]
@@ -221,7 +221,7 @@ async def register_by_other(ctx, user: discord.Member, game_name: str, tag_line:
         await ctx.respond("登録中に予期せぬエラーが発生しました。")
 
 @bot.slash_command(name="unregister", description="ボットからあなたの登録情報を削除します。")
-async def unregister(ctx):
+async def unregister(ctx: discord.ApplicationContext) -> None:
     await ctx.defer()
     try:
         con = sqlite3.connect(DB_PATH)
@@ -237,7 +237,7 @@ async def unregister(ctx):
         await ctx.respond("登録解除中に予期せぬエラーが発生しました。")
 
 @bot.slash_command(name="ranking", description="サーバー内のLoLランクランキングを表示します。")
-async def ranking(ctx):
+async def ranking(ctx: discord.ApplicationContext) -> None:
     await ctx.defer()
     try:
         ranking_embed = await create_ranking_embed()
@@ -251,7 +251,7 @@ async def ranking(ctx):
 
 # --- デバッグ用コマンド ---
 @bot.slash_command(name="debug_check_ranks_periodically", description="定期的なランクチェックを手動で実行します。（デバッグ用）")
-async def debug_check_ranks_periodically(ctx):
+async def debug_check_ranks_periodically(ctx: discord.ApplicationContext) -> None:
     await ctx.defer(ephemeral=True)
     try:
         await ctx.respond("定期ランクチェック処理を開始します...")
@@ -261,7 +261,7 @@ async def debug_check_ranks_periodically(ctx):
         await ctx.followup.send(f"処理中にエラーが発生しました: {e}")
 
 @bot.slash_command(name="debug_rank_all_iron", description="登録者全員のランクをIron IVに設定します。（デバッグ用）")
-async def debug_rank_all_iron(ctx):
+async def debug_rank_all_iron(ctx: discord.ApplicationContext) -> None:
     await ctx.defer(ephemeral=True)
     try:
         con = sqlite3.connect(DB_PATH)
@@ -276,7 +276,7 @@ async def debug_rank_all_iron(ctx):
         await ctx.respond(f"処理中にエラーが発生しました: {e}")
 
 @bot.slash_command(name="debug_modify_rank", description="特定のユーザーのランクを強制的に変更します。（デバッグ用）")
-async def debug_modify_rank(ctx, user: discord.Member, tier: str, rank: str, league_points: int):
+async def debug_modify_rank(ctx: discord.ApplicationContext, user: discord.Member, tier: str, rank: str, league_points: int) -> None:
     await ctx.defer(ephemeral=True)
     TIERS = ["IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "EMERALD", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"]
     RANKS = ["I", "II", "III", "IV"]
@@ -306,7 +306,7 @@ async def debug_modify_rank(ctx, user: discord.Member, tier: str, rank: str, lea
 # --- バックグラウンドタスク ---
 jst = datetime.timezone(datetime.timedelta(hours=9))
 @tasks.loop(time=datetime.time(hour=12, minute=0, tzinfo=jst))
-async def check_ranks_periodically():
+async def check_ranks_periodically() -> None:
     print("--- Starting periodic rank check ---")
 
     channel = bot.get_channel(NOTIFICATION_CHANNEL_ID)
