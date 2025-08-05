@@ -8,13 +8,13 @@ import time
 
 # --- 設定項目 ---
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
-RIOT_API_KEY = os.getenv('RIOT_API_KEY') 
+RIOT_API_KEY = os.getenv('RIOT_API_KEY')
 DB_PATH = '/data/lol_bot.db'
 NOTIFICATION_CHANNEL_ID = 1401719055643312219 # 通知用チャンネルID
 RANK_ROLES = {
-    "IRON": "LoL Iron(Solo/Duo)", "BRONZE": "LoL Bronze(Solo/Duo)", "SILVER": "LoL Silver(Solo/Duo)", 
-    "GOLD": "LoL Gold(Solo/Duo)", "PLATINUM": "LoL Platinum(Solo/Duo)", "EMERALD": "LoL Emerald(Solo/Duo)", 
-    "DIAMOND": "LoL Diamond(Solo/Duo)", "MASTER": "LoL Master(Solo/Duo)", 
+    "IRON": "LoL Iron(Solo/Duo)", "BRONZE": "LoL Bronze(Solo/Duo)", "SILVER": "LoL Silver(Solo/Duo)",
+    "GOLD": "LoL Gold(Solo/Duo)", "PLATINUM": "LoL Platinum(Solo/Duo)", "EMERALD": "LoL Emerald(Solo/Duo)",
+    "DIAMOND": "LoL Diamond(Solo/Duo)", "MASTER": "LoL Master(Solo/Duo)",
     "GRANDMASTER": "LoL Grandmaster(Solo/Duo)", "CHALLENGER": "LoL Challenger(Solo/Duo)"
 }
 # ----------------
@@ -68,10 +68,10 @@ def get_rank_by_puuid(puuid: str):
                         "rank": queue.get("rank"),
                         "leaguePoints": queue.get("leaguePoints")
                     }
-            
+
             # リスト内にSolo/Duoランク情報がなかった場合
             return None
-            
+
         except ApiError as err:
             if err.response.status_code == 429:
                 retry_after = int(err.response.headers.get('Retry-After', 1))
@@ -89,7 +89,7 @@ def get_rank_by_puuid(puuid: str):
             # 予期せぬエラー
             print(f"An unexpected error occurred in get_rank_by_puuid for PUUID {puuid}: {e}")
             raise
-    
+
     # リトライにすべて失敗した場合
     print(f"Failed to get rank for PUUID {puuid} after {max_retries} retries.")
     return None
@@ -113,7 +113,7 @@ async def create_ranking_embed():
     embed = discord.Embed(title="🏆 ぱぶびゅ！内LoL(Solo/Duo)ランキング 🏆", color=discord.Color.gold())
 
     description_footer = "\n\n**`/register` コマンドであなたもランキングに参加しよう！**"
-    description_update_time = "（ランキングは毎日12時に自動更新されます）"
+    description_update_time = "（ランキングは毎日午後12時に自動更新されます）"
 
     if not registered_users_with_rank:
         embed.description = f"現在ランク情報を取得できるユーザーがいません。\n{description_update_time}{description_footer}"
@@ -126,9 +126,9 @@ async def create_ranking_embed():
             "tier": tier, "rank": rank, "lp": lp,
             "value": rank_to_value(tier, rank, lp)
         })
-    
+
     sorted_ranks = sorted(player_ranks, key=lambda x: x['value'], reverse=True)
-    
+
     embed.description = f"現在登録されているメンバーのランクです。\n{description_update_time}{description_footer}"
 
     for i, player in enumerate(sorted_ranks[:20]):
@@ -137,17 +137,17 @@ async def create_ranking_embed():
             display_name = user.display_name
         except discord.NotFound:
             display_name = f"ID: {player['discord_id']}"
-        
+
         riot_id_full = f"{player['game_name']}#{player['tag_line']}"
         embed.add_field(name=f"{i+1}. {display_name} ({riot_id_full})", value=f"**{player['tier']} {player['rank']} / {player['lp']}LP**", inline=False)
-    
+
     return embed
 
 # --- イベント ---
 @bot.event
 async def on_ready():
     print(f"Bot logged in as {bot.user}")
-    
+
     # ▼▼▼ 起動時にランキングを投稿する処理を追加 ▼▼▼
     print("--- Posting initial ranking on startup ---")
     channel = bot.get_channel(NOTIFICATION_CHANNEL_ID)
@@ -155,18 +155,20 @@ async def on_ready():
         ranking_embed = await create_ranking_embed()
         if ranking_embed:
             await channel.send("【起動時ランキング速報】", embed=ranking_embed)
-    
+
     check_ranks_periodically.start()
 
 # --- コマンド ---
 @bot.slash_command(name="register", description="あなたのRiot IDをボットに登録します。")
 async def register(ctx, game_name: str, tag_line: str):
     await ctx.defer()
+    if tag_line.startswith("#"):
+        tag_line = tag_line[1:]
     try:
         account_info = riot_watcher.account.by_riot_id(my_region_for_account, game_name, tag_line)
         puuid = account_info['puuid']
         rank_info = get_rank_by_puuid(puuid)
-        
+
         con = sqlite3.connect(DB_PATH)
         cur = con.cursor()
         if rank_info:
@@ -190,11 +192,13 @@ async def register(ctx, game_name: str, tag_line: str):
 @bot.slash_command(name="register_by_other", description="指定したユーザーのRiot IDをボットに登録します。（管理者向け）")
 async def register_by_other(ctx, user: discord.Member, game_name: str, tag_line: str):
     await ctx.defer(ephemeral=True) # コマンド結果は実行者のみに見える
+    if tag_line.startswith("#"):
+        tag_line = tag_line[1:]
     try:
         account_info = riot_watcher.account.by_riot_id(my_region_for_account, game_name, tag_line)
         puuid = account_info['puuid']
         rank_info = get_rank_by_puuid(puuid)
-        
+
         con = sqlite3.connect(DB_PATH)
         cur = con.cursor()
         target_discord_id = user.id
@@ -286,16 +290,16 @@ async def debug_modify_rank(ctx, user: discord.Member, tier: str, rank: str, lea
         cur = con.cursor()
         cur.execute("UPDATE users SET tier = ?, rank = ?, league_points = ? WHERE discord_id = ?",
                     (tier.upper(), rank.upper(), league_points, user.id))
-        
+
         count = cur.rowcount
         con.commit()
         con.close()
-        
+
         if count > 0:
             await ctx.respond(f"ユーザー「{user.display_name}」のランクを {tier.upper()} {rank.upper()} {league_points}LP に設定しました。")
         else:
             await ctx.respond(f"ユーザー「{user.display_name}」は見つかりませんでした。先に/registerで登録してください。")
-            
+
     except Exception as e:
         await ctx.respond(f"処理中にエラーが発生しました: {e}")
 
@@ -304,7 +308,7 @@ jst = datetime.timezone(datetime.timedelta(hours=9))
 @tasks.loop(time=datetime.time(hour=12, minute=0, tzinfo=jst))
 async def check_ranks_periodically():
     print("--- Starting periodic rank check ---")
-    
+
     channel = bot.get_channel(NOTIFICATION_CHANNEL_ID)
     if channel:
         ranking_embed = await create_ranking_embed()
@@ -359,7 +363,7 @@ async def check_ranks_periodically():
         except Exception as e:
             print(f"Error processing user {discord_id}: {e}")
             continue
-            
+
     con.commit()
     con.close()
     print("--- Periodic rank check finished ---")
