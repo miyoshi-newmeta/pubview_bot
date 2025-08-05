@@ -25,5 +25,5 @@ spec:
       volumes:
       - name: db-storage
         hostPath:
-          path: $PWD:/data # Mac上のパスを直接指定
+          path: /Users/miyoshi/pubview_bot/data # Mac上のパスを直接指定
           type: DirectoryOrCreate
