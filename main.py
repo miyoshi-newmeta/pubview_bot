@@ -317,10 +317,6 @@ async def check_ranks_periodically() -> None:
     print("--- Starting periodic rank check ---")
 
     channel = bot.get_channel(NOTIFICATION_CHANNEL_ID)
-    if channel:
-        ranking_embed = await create_ranking_embed()
-        if ranking_embed:
-            await channel.send("【定期ランキング速報】", embed=ranking_embed)
 
     con = sqlite3.connect(DB_PATH)
     cur = con.cursor()
@@ -373,6 +369,12 @@ async def check_ranks_periodically() -> None:
 
     con.commit()
     con.close()
+
+    if channel:
+        ranking_embed = await create_ranking_embed()
+    if ranking_embed:
+        await channel.send("【定期ランキング速報】", embed=ranking_embed)
+
     print("--- Periodic rank check finished ---")
 
 # --- Botの起動 ---
