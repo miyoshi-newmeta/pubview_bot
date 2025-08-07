@@ -113,7 +113,7 @@ async def create_ranking_embed() -> discord.Embed:
     embed = discord.Embed(title="🏆 ぱぶびゅ！内LoL(Solo/Duo)ランキング 🏆", color=discord.Color.gold())
 
     description_footer = "\n\n**`/register` コマンドであなたもランキングに参加しよう！**"
-    description_update_time = "（ランキングは毎日午後12時に自動更新されます）"
+    description_update_time = "（ランキングは毎日正午に自動更新されます）"
 
     if not registered_users_with_rank:
         embed.description = f"現在ランク情報を取得できるユーザーがいません。\n{description_update_time}{description_footer}"
