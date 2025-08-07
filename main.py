@@ -233,6 +233,13 @@ async def unregister(ctx: discord.ApplicationContext) -> None:
         else:
             await ctx.respond("あなたはまだ登録されていません。")
         con.close()
+
+        # --- ランク連動ロール削除処理 ---
+        guild = ctx.guild
+        member = await guild.fetch_member(ctx.author.id)
+        role_names_to_remove = [discord.utils.get(guild.roles, name=role_name) for role_name in RANK_ROLES.values()]
+        await member.remove_roles(*[role for role in role_names_to_remove if role is not None and role in member.roles])
+
     except Exception as e:
         await ctx.respond("登録解除中に予期せぬエラーが発生しました。")
 
