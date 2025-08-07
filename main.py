@@ -338,6 +338,13 @@ async def check_ranks_periodically() -> None:
             member = await guild.fetch_member(discord_id)
             if not member: continue
 
+            # --- データベース更新 ---
+            if new_rank_info:
+                cur.execute("UPDATE users SET tier = ?, rank = ?, league_points = ? WHERE discord_id = ?",
+                            (new_rank_info['tier'], new_rank_info['rank'], new_rank_info['leaguePoints'], discord_id))
+            else:
+                cur.execute("UPDATE users SET tier = NULL, rank = NULL, league_points = NULL WHERE discord_id = ?", (discord_id,))
+
             # --- ランク連動ロール処理 ---
             current_rank_tier = new_rank_info['tier'].upper() if new_rank_info else None
             role_names_to_remove = [discord.utils.get(guild.roles, name=role_name) for role_name in RANK_ROLES.values()]
@@ -345,6 +352,12 @@ async def check_ranks_periodically() -> None:
             if current_rank_tier and current_rank_tier in RANK_ROLES:
                 role_to_add = discord.utils.get(guild.roles, name=RANK_ROLES[current_rank_tier])
                 if role_to_add: await member.add_roles(role_to_add)
+
+            # --- 定期ランキング速報処理 ---
+            if channel:
+                ranking_embed = await create_ranking_embed()
+            if ranking_embed:
+                await channel.send("【定期ランキング速報】", embed=ranking_embed)
 
             # --- ランクアップ通知処理 ---
             if new_rank_info and old_tier and old_rank:
@@ -354,12 +367,6 @@ async def check_ranks_periodically() -> None:
                     riot_id_full = f"{game_name}#{tag_line}"
                     await channel.send(f"🎉 **ランクアップ！** 🎉\nおめでとうございます、{member.mention}さん ({riot_id_full})！\n**{old_tier} {old_rank}** → **{new_rank_info['tier']} {new_rank_info['rank']}** に昇格しました！")
 
-            # --- データベース更新 ---
-            if new_rank_info:
-                cur.execute("UPDATE users SET tier = ?, rank = ?, league_points = ? WHERE discord_id = ?",
-                            (new_rank_info['tier'], new_rank_info['rank'], new_rank_info['leaguePoints'], discord_id))
-            else:
-                cur.execute("UPDATE users SET tier = NULL, rank = NULL, league_points = NULL WHERE discord_id = ?", (discord_id,))
         except discord.NotFound:
              print(f"User with ID {discord_id} not found in the server. Skipping.")
              continue
@@ -369,11 +376,6 @@ async def check_ranks_periodically() -> None:
 
     con.commit()
     con.close()
-
-    if channel:
-        ranking_embed = await create_ranking_embed()
-    if ranking_embed:
-        await channel.send("【定期ランキング速報】", embed=ranking_embed)
 
     print("--- Periodic rank check finished ---")
 
