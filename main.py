@@ -139,7 +139,7 @@ async def create_ranking_embed() -> discord.Embed:
         except discord.NotFound:
             mention_name = user.display_name
 
-        riot_id_full = f"{player['game_name']}#{player['tag_line']}"
+        riot_id_full = f"{player['game_name']}#{player['tag_line'].upper()}"
         embed.add_field(name=f"", value=f"{i+1}. {mention_name} ({riot_id_full})\n**{player['tier']} {player['rank']} / {player['lp']}LP**", inline=False)
 
     return embed
@@ -165,6 +165,7 @@ async def register(ctx: discord.ApplicationContext, game_name: str, tag_line: st
     await ctx.defer()
     if tag_line.startswith("#"):
         tag_line = tag_line[1:]
+    tag_line = tag_line.upper()
     try:
         account_info = riot_watcher.account.by_riot_id(my_region_for_account, game_name, tag_line)
         puuid = account_info['puuid']
@@ -196,6 +197,7 @@ async def register_by_other(ctx: discord.ApplicationContext, user: discord.Membe
     await ctx.defer(ephemeral=True) # コマンド結果は実行者のみに見える
     if tag_line.startswith("#"):
         tag_line = tag_line[1:]
+    tag_line = tag_line.upper()
     try:
         account_info = riot_watcher.account.by_riot_id(my_region_for_account, game_name, tag_line)
         puuid = account_info['puuid']
@@ -387,7 +389,7 @@ async def check_ranks_periodically() -> None:
                 old_value = rank_to_value(old_tier, old_rank, 0)
                 new_value = rank_to_value(new_rank_info['tier'], new_rank_info['rank'], 0)
                 if new_value > old_value:
-                    riot_id_full = f"{game_name}#{tag_line}"
+                    riot_id_full = f"{game_name}#{tag_line.upper()}"
                     await channel.send(f"🎉 **ランクアップ！** 🎉\nおめでとうございます、{member.mention}さん ({riot_id_full})！\n**{old_tier} {old_rank}** → **{new_rank_info['tier']} {new_rank_info['rank']}** に昇格しました！")
 
         except discord.NotFound:
