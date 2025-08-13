@@ -135,12 +135,12 @@ async def create_ranking_embed() -> discord.Embed:
         try:
             user = await bot.fetch_user(player['discord_id'])
             # メンション形式でユーザー名を表示
-            mention_name = f"<@{player['discord_id']}>"
+            mention_name = user.mention
         except discord.NotFound:
-            mention_name = f"ID: {player['discord_id']}"
+            mention_name = user.display_name
 
         riot_id_full = f"{player['game_name']}#{player['tag_line']}"
-        embed.add_field(name=f"{i+1}. {mention_name} ({riot_id_full})", value=f"**{player['tier']} {player['rank']} / {player['lp']}LP**", inline=False)
+        embed.add_field(name=f"", value=f"{i+1}. {mention_name} ({riot_id_full})\n**{player['tier']} {player['rank']} / {player['lp']}LP**", inline=False)
 
     return embed
 
