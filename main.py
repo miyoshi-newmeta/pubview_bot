@@ -351,11 +351,29 @@ async def check_ranks_periodically() -> None:
 
             # --- ランク連動ロール処理 ---
             current_rank_tier = new_rank_info['tier'].upper() if new_rank_info else None
-            role_names_to_remove = [discord.utils.get(guild.roles, name=role_name) for role_name in RANK_ROLES.values()]
-            await member.remove_roles(*[role for role in role_names_to_remove if role is not None and role in member.roles])
+
+            # 現在のユーザーが持っているランクロールを確認
+            current_rank_role = None
+            for role_name in RANK_ROLES.values():
+                role = discord.utils.get(guild.roles, name=role_name)
+                if role and role in member.roles:
+                    current_rank_role = role
+                    break
+
+            # 新しいランクに対応するロールを取得
+            new_rank_role = None
             if current_rank_tier and current_rank_tier in RANK_ROLES:
-                role_to_add = discord.utils.get(guild.roles, name=RANK_ROLES[current_rank_tier])
-                if role_to_add: await member.add_roles(role_to_add)
+                new_rank_role = discord.utils.get(guild.roles, name=RANK_ROLES[current_rank_tier])
+
+            # ロールの変更が必要な場合のみ処理
+            if current_rank_role != new_rank_role:
+                # 古いランクロールを削除（存在する場合）
+                if current_rank_role:
+                    await member.remove_roles(current_rank_role)
+
+                # 新しいランクロールを追加（存在する場合）
+                if new_rank_role:
+                    await member.add_roles(new_rank_role)
 
             # --- 定期ランキング速報処理 ---
             if channel:
