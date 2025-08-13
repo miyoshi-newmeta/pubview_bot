@@ -378,26 +378,26 @@ async def check_ranks_periodically() -> None:
                 if new_rank_role:
                     await member.add_roles(new_rank_role)
 
-            # --- 定期ランキング速報処理 ---
-            if channel:
-                ranking_embed = await create_ranking_embed()
-            if ranking_embed:
-                await channel.send("【定期ランキング速報】", embed=ranking_embed)
-
-            # --- ランクアップ通知処理 ---
-            if new_rank_info and old_tier and old_rank:
-                old_value = rank_to_value(old_tier, old_rank, 0)
-                new_value = rank_to_value(new_rank_info['tier'], new_rank_info['rank'], 0)
-                if new_value > old_value:
-                    riot_id_full = f"{game_name}#{tag_line.upper()}"
-                    await channel.send(f"🎉 **ランクアップ！** 🎉\nおめでとうございます、{member.mention}さん ({riot_id_full})！\n**{old_tier} {old_rank}** → **{new_rank_info['tier']} {new_rank_info['rank']}** に昇格しました！")
-
         except discord.NotFound:
              print(f"User with ID {discord_id} not found in the server. Skipping.")
              continue
         except Exception as e:
             print(f"Error processing user {discord_id}: {e}")
             continue
+
+    # --- 定期ランキング速報処理 ---
+    if channel:
+        ranking_embed = await create_ranking_embed()
+    if ranking_embed:
+        await channel.send("【定期ランキング速報】", embed=ranking_embed)
+
+    # --- ランクアップ通知処理 ---
+    if new_rank_info and old_tier and old_rank:
+        old_value = rank_to_value(old_tier, old_rank, 0)
+        new_value = rank_to_value(new_rank_info['tier'], new_rank_info['rank'], 0)
+        if new_value > old_value:
+            riot_id_full = f"{game_name}#{tag_line.upper()}"
+            await channel.send(f"🎉 **ランクアップ！** 🎉\nおめでとうございます、{member.mention}さん ({riot_id_full})！\n**{old_tier} {old_rank}** → **{new_rank_info['tier']} {new_rank_info['rank']}** に昇格しました！")
 
     con.commit()
     con.close()
