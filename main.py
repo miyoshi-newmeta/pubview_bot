@@ -190,6 +190,7 @@ async def register(ctx: discord.ApplicationContext, game_name: str, tag_line: st
         await ctx.respond("登録中に予期せぬエラーが発生しました。")
 
 @bot.slash_command(name="register_by_other", description="指定したユーザーのRiot IDをボットに登録します。（管理者向け）")
+@discord.default_permissions(administrator=True)
 async def register_by_other(ctx: discord.ApplicationContext, user: discord.Member, game_name: str, tag_line: str) -> None:
     await ctx.defer(ephemeral=True) # コマンド結果は実行者のみに見える
     if tag_line.startswith("#"):
@@ -258,6 +259,7 @@ async def ranking(ctx: discord.ApplicationContext) -> None:
 
 # --- デバッグ用コマンド ---
 @bot.slash_command(name="debug_check_ranks_periodically", description="定期的なランクチェックを手動で実行します。（デバッグ用）")
+@discord.default_permissions(administrator=True)
 async def debug_check_ranks_periodically(ctx: discord.ApplicationContext) -> None:
     await ctx.defer(ephemeral=True)
     try:
@@ -268,6 +270,7 @@ async def debug_check_ranks_periodically(ctx: discord.ApplicationContext) -> Non
         await ctx.followup.send(f"処理中にエラーが発生しました: {e}")
 
 @bot.slash_command(name="debug_rank_all_iron", description="登録者全員のランクをIron IVに設定します。（デバッグ用）")
+@discord.default_permissions(administrator=True)
 async def debug_rank_all_iron(ctx: discord.ApplicationContext) -> None:
     await ctx.defer(ephemeral=True)
     try:
@@ -283,6 +286,7 @@ async def debug_rank_all_iron(ctx: discord.ApplicationContext) -> None:
         await ctx.respond(f"処理中にエラーが発生しました: {e}")
 
 @bot.slash_command(name="debug_modify_rank", description="特定のユーザーのランクを強制的に変更します。（デバッグ用）")
+@discord.default_permissions(administrator=True)
 async def debug_modify_rank(ctx: discord.ApplicationContext, user: discord.Member, tier: str, rank: str, league_points: int) -> None:
     await ctx.defer(ephemeral=True)
     TIERS = ["IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "EMERALD", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"]
